@@ -178,6 +178,11 @@ namespace GeoTiffCOG
                     int bytesPerSample = metadata.BitsPerSample / 8;
                     byte[] byteScanline = new byte[metadata.ScanlineSize];
 
+                    //it is necessary to iterate until you reach the desired line
+                    int _minHeigh = Math.Min(y, metadata.Height);
+                    for (int iLine = 0; iLine < _minHeigh; ++iLine)
+                        TiffFile.ReadScanline(byteScanline, iLine);
+
                     TiffFile.ReadScanline(byteScanline, y);
 
                     heightValue = GetElevationAtPoint(x, byteScanline);
