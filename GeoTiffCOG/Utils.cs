@@ -7,8 +7,23 @@ using GeoTiffCOG.Struture;
 
 namespace GeoTiffCOG
 {
-    static class Utils
+    public static class Utils
     {
+
+        public static void GetXYFromLatLon(FileMetadata metadata, double latitude, double longitude, out int x, out int y)
+        {
+            var bbox = new double[] { metadata.DataStartLon, metadata.DataStartLat, metadata.DataEndLon, metadata.DataEndLat };
+            var pixelWidth = metadata.Width;
+            var pixelHeight = metadata.Height;
+            var bboxWidth = bbox[2] - bbox[0];
+            var bboxHeight = bbox[3] - bbox[1];
+
+            var widthPct = (longitude - bbox[0]) / bboxWidth;
+            var heightPct = (latitude - bbox[1]) / bboxHeight;
+            x = (int)(Math.Round(pixelWidth * widthPct));
+            y = (int)(Math.Round(pixelHeight * (1 - heightPct)));
+        }
+
         public static BoundingBox GetBoundingBox(this IEnumerable<GeoPoint> points)
         {
             double xmin = double.MaxValue,

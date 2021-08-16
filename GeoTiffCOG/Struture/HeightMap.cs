@@ -11,8 +11,8 @@ namespace GeoTiffCOG.Struture
     {
         public HeightMap(int width, int height)
         {
-            Width = width;
-            Height = height;
+            Width = Math.Abs(width);
+            Height = Math.Abs(height);
             Coordinates = null;
             Count = width * height;
             Minimum = 15000;

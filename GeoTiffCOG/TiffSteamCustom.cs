@@ -67,6 +67,15 @@ namespace GeoTiffCOG
             return position;
         }
 
+        private void WriteException(Exception ex, string message)
+        {
+            if (!string.IsNullOrWhiteSpace(directoryCache))
+            {
+                string fileName = Path.Combine(directoryCache, "log_" + DateTime.Now.ToString("yyyy-MM-dd") + ".log");
+                File.AppendAllLines(fileName, (new List<string>() { "-----", message, ex.StackTrace }).ToArray(), System.Text.Encoding.Default);
+            }
+        }
+
         private Stream GetStream(int offset, int count)
         {
             MemoryStream ms = new MemoryStream();
@@ -82,32 +91,56 @@ namespace GeoTiffCOG
             }
             else
             {
-                HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(urlCOGTiff);
-                webRequest.Credentials = CredentialCache.DefaultCredentials;
-                webRequest.ServicePoint.ConnectionLimit = 500;
-                webRequest.AddRange(position + offset, count - 1 + position);
-                var bufferSize = (1024 * 8);
-                var buffer = new byte[bufferSize];
-                int length;
-                using (var webResponse = (HttpWebResponse)webRequest.GetResponse())
+                try
                 {
-                    using (var webStream = webResponse.GetResponseStream())
+                    HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(urlCOGTiff);
+                    webRequest.Credentials = CredentialCache.DefaultCredentials;
+                    webRequest.ServicePoint.ConnectionLimit = 500;
+                    webRequest.AddRange(position + offset, count - 1 + position);
+                    var bufferSize = (1024 * 8);
+                    var buffer = new byte[bufferSize];
+                    int length;
+                    using (var webResponse = (HttpWebResponse)webRequest.GetResponse())
                     {
-                        while ((length = webStream.Read(buffer, 0, buffer.Length)) != 0)
+                        using (var webStream = webResponse.GetResponseStream())
                         {
-                            ms.Write(buffer, 0, length);
+                            while ((length = webStream.Read(buffer, 0, buffer.Length)) != 0)
+                            {
+                                ms.Write(buffer, 0, length);
+                            }
                         }
                     }
-                }
-                ms.Position = 0;
 
-                //Save cache
-                if (!string.IsNullOrWhiteSpace(directoryCache))
-                {
-                    using (FileStream file = new FileStream(Path.Combine(directoryCache, fileCache), FileMode.CreateNew, FileAccess.Write))
-                        ms.CopyTo(file);
                     ms.Position = 0;
+
+                    //Save cache
+                    if (!string.IsNullOrWhiteSpace(directoryCache))
+                    {
+                        using (FileStream file = new FileStream(Path.Combine(directoryCache, fileCache), FileMode.CreateNew, FileAccess.Write))
+                            ms.CopyTo(file);
+                        ms.Position = 0;
+                    }
                 }
+                catch (WebException wex)
+                {
+                    if (wex.Response != null)
+                    {
+                        if (((HttpWebResponse)wex.Response).StatusCode == HttpStatusCode.NotFound)
+                            WriteException(wex, wex.Message + System.Environment.NewLine + "404 NotFound: " + urlCOGTiff);
+                        else
+                            WriteException(wex, wex.Message + System.Environment.NewLine + urlCOGTiff);
+                    }
+                    else
+                    {
+                        WriteException(wex, wex.Message + System.Environment.NewLine + urlCOGTiff);
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    WriteException(ex, ex.Message + System.Environment.NewLine + urlCOGTiff);
+                }
+
             }
 
             position += offset + count;

@@ -137,17 +137,7 @@ namespace GeoTiffCOG
 
         public float GetElevationAtLatLon(double latitude, double longitude)
         {
-            var bbox = new double[] { metadata.DataStartLon, metadata.DataStartLat, metadata.DataEndLon, metadata.DataEndLat };
-            var pixelWidth = metadata.Width;
-            var pixelHeight = metadata.Height;
-            var bboxWidth = bbox[2] - bbox[0];
-            var bboxHeight = bbox[3] - bbox[1];
-
-            var widthPct = (longitude - bbox[0]) / bboxWidth;
-            var heightPct = (latitude - bbox[1]) / bboxHeight;
-            var x = (int)(Math.Floor(pixelWidth * widthPct));
-            var y = (int)(Math.Floor(pixelHeight * (1 - heightPct)));
-
+            Utils.GetXYFromLatLon(metadata, latitude, longitude, out int x, out int y);
             return GetElevationAtPoint(x, y);
         }
 
@@ -356,7 +346,6 @@ namespace GeoTiffCOG
                 xStart = (int)Math.Floor((bbox.xMin - metadata.DataStartLon) / metadata.pixelSizeX);
                 xEnd = (int)Math.Ceiling((bbox.xMax - metadata.DataStartLon) / metadata.pixelSizeX);
             }
-
 
             // Tiled geotiffs like aster have overlapping 1px borders
             int overlappingPixel = this.IsTiled ? 1 : 0;
