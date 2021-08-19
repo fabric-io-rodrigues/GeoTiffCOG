@@ -31,3 +31,11 @@ As an example, url_COG + expected result. This same Tiff is in the Sample direct
 Some project details: I used some best practices from the DEM.Net lib and as a base (used as reference) the BitMiracle/libtiff.net lib.
 
 Feel free to download, modify and suggest changes (such as pull request).
+
+
+## License
+
+Copyright © 2021 [Fabricio Rodrigues](https://github.com/fabric-io-rodrigues)
+Released under the MIT license.
+
+***
