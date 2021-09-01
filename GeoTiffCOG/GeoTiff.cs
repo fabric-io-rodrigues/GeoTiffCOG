@@ -214,7 +214,7 @@ namespace GeoTiffCOG
                     default:
                         throw new Exception("Sample format unsupported.");
                 }
-                if (heightValue > 32768)
+                if ((heightValue > 32768.0f) || (heightValue <= -32768.0f))
                 {
                     heightValue = metadata.NoDataValueFloat;
                 }
@@ -245,7 +245,7 @@ namespace GeoTiffCOG
                     default:
                         throw new Exception("Sample format unsupported.");
                 }
-                if (heightValue > 32768)
+                if ((heightValue > 32768.0f) || (heightValue <= -32768.0f))
                 {
                     heightValue = metadata.NoDataValueFloat;
                 }
