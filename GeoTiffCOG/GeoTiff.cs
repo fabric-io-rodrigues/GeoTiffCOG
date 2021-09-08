@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using BitMiracle.LibTiff.Classic;
 using GeoTiffCOG.Struture;
+using System.Xml;
 
 namespace GeoTiffCOG
 {
@@ -206,10 +207,26 @@ namespace GeoTiffCOG
                         heightValue = BitConverter.ToSingle(buffer, offset * metadata.BitsPerSample / 8);
                         break;
                     case RasterSampleFormat.INTEGER:
-                        heightValue = BitConverter.ToInt16(buffer, offset * metadata.BitsPerSample / 8);
+                        if (metadata.BitsPerSample == 32)
+                        {
+                            heightValue = BitConverter.ToInt32(buffer, offset * metadata.BitsPerSample / 8);
+                        }
+                        else
+                        {
+                            heightValue = BitConverter.ToInt16(buffer, offset * metadata.BitsPerSample / 8);
+                        }
+                        heightValue = heightValue * metadata.Scale + metadata.Offset;
                         break;
                     case RasterSampleFormat.UNSIGNED_INTEGER:
-                        heightValue = BitConverter.ToUInt16(buffer, offset * metadata.BitsPerSample / 8);
+                        if (metadata.BitsPerSample == 32)
+                        {
+                            heightValue = BitConverter.ToUInt32(buffer, offset * metadata.BitsPerSample / 8);
+                        }
+                        else
+                        {
+                            heightValue = BitConverter.ToUInt16(buffer, offset * metadata.BitsPerSample / 8);
+                        }
+                        heightValue = heightValue * metadata.Scale + metadata.Offset;
                         break;
                     default:
                         throw new Exception("Sample format unsupported.");
@@ -258,6 +275,42 @@ namespace GeoTiffCOG
             return heightValue;
         }
 
+        public class GDALMetaData
+        {
+            public float Offset { get; set; }
+            public float Scale { get; set; }
+
+        }
+
+        private GDALMetaData ParseXml(string xml)
+        {
+            GDALMetaData gdal = new GDALMetaData();
+
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(xml);
+
+            XmlNodeList nodeList = doc.GetElementsByTagName("GDALMetadata");
+
+            foreach (XmlNode node in nodeList)
+            {
+
+                foreach (XmlNode childNode in node.ChildNodes)
+                {
+                    string item = childNode.InnerText;
+
+                    if (childNode.Attributes?["name"]?.Value == "OFFSET")
+                    {
+                        gdal.Offset = Convert.ToSingle(item);
+                    }
+                    if (childNode.Attributes?["name"]?.Value == "SCALE")
+                    {
+                        gdal.Scale = Convert.ToSingle(item);
+                    }
+                }
+            }
+
+            return gdal;
+        }
         private FileMetadata ParseMetaData(DEMFileDefinition format)
         {
             FileMetadata _metadata = new FileMetadata(FilePath, format);
@@ -328,6 +381,12 @@ namespace GeoTiffCOG
             _metadata.NoDataValue = "-10000";
 
             _metadata.WorldUnits = "meter";
+
+            // TIFF Tag GDAL_METADATA 42112
+            var xml = TiffFile.GetField((TiffTag)42112)[1].ToString().Trim('\0');
+            var gd = ParseXml(xml);
+            _metadata.Offset = gd.Offset;
+            _metadata.Scale = gd.Scale;
 
             return _metadata;
         }

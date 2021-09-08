@@ -78,6 +78,8 @@ namespace GeoTiffCOG.Struture
         public float MinimumAltitude { get; set; }
         public float MaximumAltitude { get; set; }
 
+        public float Offset { get; set; }
+        public float Scale { get; set; }
 
         private float _noDataValue;
         private bool _noDataValueSet = false;
