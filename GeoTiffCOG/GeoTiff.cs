@@ -33,6 +33,14 @@ namespace GeoTiffCOG
             metadata = this.ParseMetaData(new DEMFileDefinition());
         }
 
+        public GeoTiff(Uri urlCOG, string directoryCache, System.Net.IWebProxy webProxy, System.Net.ICredentials credentials)
+        {
+            Tiff.SetErrorHandler(_traceLogHandler);
+            _tiff = Tiff.ClientOpen("tiff", "r", null, new TiffSteamCustom(urlCOG.ToString(), directoryCache, webProxy, credentials));
+
+            metadata = this.ParseMetaData(new DEMFileDefinition());
+        }
+
         public GeoTiff(string tiffPath)
         {
             Tiff.SetErrorHandler(_traceLogHandler);

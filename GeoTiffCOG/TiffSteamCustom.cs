@@ -14,19 +14,25 @@ namespace GeoTiffCOG
         long position;
         string urlCOGTiff;
         string directoryCache;
+        IWebProxy currentWebProxy = null;
+        ICredentials currentCredentials = null;
+
         public TiffSteamCustom(string urlCOG)
         {
             position = 0;
             urlCOGTiff = urlCOG;
             directoryCache = string.Empty;
         }
-        public TiffSteamCustom(string urlCOG, string directoryCacheChk) : this(urlCOG)
+
+        public TiffSteamCustom(string urlCOG, string directoryCacheChk, IWebProxy webProxy = null, ICredentials credentials = null) : this(urlCOG)
         {
             directoryCache = Path.Combine(directoryCacheChk, Utils.CreateMD5(urlCOG.ToLower()));
             if (!Directory.Exists(directoryCache))
                 Directory.CreateDirectory(directoryCache);
+            
+            currentWebProxy = webProxy;
+            currentCredentials = credentials;
         }
-
 
         public override int Read(object clientData, byte[] buffer, int offset, int count)
         {
@@ -94,7 +100,9 @@ namespace GeoTiffCOG
                 try
                 {
                     HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(urlCOGTiff);
-                    webRequest.Credentials = CredentialCache.DefaultCredentials;
+                    webRequest.Proxy = currentWebProxy;
+                    webRequest.Credentials = currentCredentials;
+
                     webRequest.ServicePoint.ConnectionLimit = 500;
                     webRequest.AddRange(position + offset, count - 1 + position);
                     var bufferSize = (1024 * 8);
