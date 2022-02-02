@@ -391,10 +391,14 @@ namespace GeoTiffCOG
             _metadata.WorldUnits = "meter";
 
             // TIFF Tag GDAL_METADATA 42112
-            var xml = TiffFile.GetField((TiffTag)42112)[1].ToString().Trim('\0');
-            var gd = ParseXml(xml);
-            _metadata.Offset = gd.Offset;
-            _metadata.Scale = gd.Scale;
+            var tag42112 = TiffFile.GetField((TiffTag)42112);
+            if (tag42112 != null && tag42112.Length >= 1)
+            {
+                var xml = tag42112[1].ToString().Trim('\0');
+                var gd = ParseXml(xml);
+                _metadata.Offset = gd.Offset;
+                _metadata.Scale = gd.Scale;
+            }
 
             return _metadata;
         }
