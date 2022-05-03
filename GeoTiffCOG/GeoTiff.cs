@@ -155,11 +155,8 @@ namespace GeoTiffCOG
             float heightValue = 0;
             try
             {
-
                 if (this.IsTiled)
                 {
-
-                    // TODO store in metadata
                     int tileWidth = this.TileWidth;
                     int tileHeight = this.TileHeight;
                     int tileSize = this.TileSize;
@@ -181,9 +178,6 @@ namespace GeoTiffCOG
                 }
                 else
                 {
-                    // metadata.BitsPerSample
-                    // When 16 we have 2 bytes per sample
-                    // When 32 we have 4 bytes per sample
                     int bytesPerSample = metadata.BitsPerSample / 8;
                     byte[] byteScanline = new byte[metadata.ScanlineSize];
 
@@ -251,38 +245,7 @@ namespace GeoTiffCOG
 
             return heightValue;
         }
-        public float GetElevationAtPointRef(int offset, ref byte[] buffer)
-        {
-            float heightValue = 0;
-            try
-            {
-                switch (metadata.SampleFormat)
-                {
-                    case RasterSampleFormat.FLOATING_POINT:
-                        heightValue = BitConverter.ToSingle(buffer, offset * metadata.BitsPerSample / 8);
-                        break;
-                    case RasterSampleFormat.INTEGER:
-                        heightValue = BitConverter.ToInt16(buffer, offset * metadata.BitsPerSample / 8);
-                        break;
-                    case RasterSampleFormat.UNSIGNED_INTEGER:
-                        heightValue = BitConverter.ToUInt16(buffer, offset * metadata.BitsPerSample / 8);
-                        break;
-                    default:
-                        throw new Exception("Sample format unsupported.");
-                }
-                if ((heightValue > 32768.0f) || (heightValue <= -32768.0f))
-                {
-                    heightValue = metadata.NoDataValueFloat;
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Error in ParseGeoDataAtPoint: {e.Message}");
-            }
-
-            return heightValue;
-        }
-
+ 
         public class GDALMetaData
         {
             public float Offset { get; set; }
@@ -292,7 +255,11 @@ namespace GeoTiffCOG
 
         private GDALMetaData ParseXml(string xml)
         {
-            GDALMetaData gdal = new GDALMetaData();
+            GDALMetaData gdal = new GDALMetaData()
+            {
+                Offset = 0,
+                Scale = 1
+            };
 
             XmlDocument doc = new XmlDocument();
             doc.LoadXml(xml);
@@ -323,11 +290,9 @@ namespace GeoTiffCOG
         {
             FileMetadata _metadata = new FileMetadata(FilePath, format);
 
-            ///
             _metadata.Height = TiffFile.GetField(TiffTag.IMAGELENGTH)[0].ToInt();
             _metadata.Width = TiffFile.GetField(TiffTag.IMAGEWIDTH)[0].ToInt();
 
-            ///
             FieldValue[] modelPixelScaleTag = TiffFile.GetField(TiffTag.GEOTIFF_MODELPIXELSCALETAG);
             FieldValue[] modelTiepointTag = TiffFile.GetField(TiffTag.GEOTIFF_MODELTIEPOINTTAG);
 
@@ -339,7 +304,6 @@ namespace GeoTiffCOG
             _metadata.PixelScaleX = BitConverter.ToDouble(modelPixelScale, 0);
             _metadata.PixelScaleY = BitConverter.ToDouble(modelPixelScale, 8);
 
-            // Ignores first set of model points (3 bytes) and assumes they are 0's...
             byte[] modelTransformation = modelTiepointTag[1].GetBytes();
             _metadata.DataStartLon = BitConverter.ToDouble(modelTransformation, 24);
             _metadata.DataStartLat = BitConverter.ToDouble(modelTransformation, 32);
@@ -380,17 +344,13 @@ namespace GeoTiffCOG
             var scanline = new byte[TiffFile.ScanlineSize()];
             _metadata.ScanlineSize = TiffFile.ScanlineSize();
 
-            // Grab some raster _metadata
             _metadata.BitsPerSample = TiffFile.GetField(TiffTag.BITSPERSAMPLE)[0].ToInt();
             var sampleFormat = TiffFile.GetField(TiffTag.SAMPLEFORMAT);
-            // Add other information about the data
             _metadata.SampleFormat = sampleFormat[0].Value.ToString();
-            // TODO: Read this from tiff _metadata or determine after parsing
-            _metadata.NoDataValue = "-10000";
-
             _metadata.WorldUnits = "meter";
 
             // TIFF Tag GDAL_METADATA 42112
+            _metadata.Scale = 1;
             var tag42112 = TiffFile.GetField((TiffTag)42112);
             if (tag42112 != null && tag42112.Length >= 1)
             {
@@ -398,6 +358,14 @@ namespace GeoTiffCOG
                 var gd = ParseXml(xml);
                 _metadata.Offset = gd.Offset;
                 _metadata.Scale = gd.Scale;
+            }
+
+            // TIFF Tag GDAL_NODATA 42113
+            _metadata.NoDataValue = "-10000";
+            var tag42113 = TiffFile.GetField((TiffTag)42113);
+            if (tag42113 != null && tag42113.Length >= 1)
+            {
+                _metadata.NoDataValue = tag42113[1].ToString().Trim('\0');
             }
 
             return _metadata;
