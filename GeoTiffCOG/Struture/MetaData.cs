@@ -7,25 +7,16 @@ using System.Threading.Tasks;
 
 namespace GeoTiffCOG.Struture
 {
-    public class FileMetadata : IEquatable<FileMetadata>
+    public class Metadata : IEquatable<Metadata>
     {
-        #region Versioning
+        public const string METADATA_VERSION = "2.3";
 
-        /* History
-         * 
-         *  2.1 : file name are relative to data directory
-         *  2.2 : [Metadata regneration required] file format is now mapped to DEMFileDefinition, lat/lon bounds names changed for clarity, file format changed from DEMFileFormat (name + file extenstion)
-         */
-
-        public const string FILEMETADATA_VERSION = "2.2";
-        #endregion
-
-
-        public FileMetadata(string filename, DEMFileDefinition fileFormat, string version = FILEMETADATA_VERSION)
+        public Metadata(string filename, DEMFileDefinition fileFormat, string version = METADATA_VERSION)
         {
             this.Filename = filename;
             this.FileFormat = fileFormat;
             this.Version = version;
+            this.Properties = new GEOTiffProperties();
         }
 
         /// <summary>
@@ -59,7 +50,6 @@ namespace GeoTiffCOG.Struture
         /// </summary>
         public double DataEndLon { get; set; }
         public int BitsPerSample { get; set; }
-        public string WorldUnits { get; set; }
         public string SampleFormat { get; set; }
         public string NoDataValue { get; set; }
         public int ScanlineSize { get; set; }
@@ -75,6 +65,7 @@ namespace GeoTiffCOG.Struture
         public double pixelSizeX { get; set; }
         public double pixelSizeY { get; set; }
         public DEMFileDefinition FileFormat { get; set; }
+        public GEOTiffProperties Properties { get; set; }
         public float MinimumAltitude { get; set; }
         public float MaximumAltitude { get; set; }
 
@@ -106,7 +97,7 @@ namespace GeoTiffCOG.Struture
 
         public override bool Equals(object obj)
         {
-            FileMetadata objTyped = obj as FileMetadata;
+            Metadata objTyped = obj as Metadata;
             if (objTyped == null)
                 return false;
 
@@ -117,7 +108,7 @@ namespace GeoTiffCOG.Struture
             return Path.GetFileName(Filename).GetHashCode();
         }
 
-        public bool Equals(FileMetadata other)
+        public bool Equals(Metadata other)
         {
             if (this == null || other == null)
                 return false;
@@ -141,9 +132,9 @@ namespace GeoTiffCOG.Struture
             }
         }
 
-        public FileMetadata Clone()
+        public Metadata Clone()
         {
-            FileMetadata clone = (FileMetadata)this.MemberwiseClone();
+            Metadata clone = (Metadata)this.MemberwiseClone();
             clone.Filename = Guid.NewGuid().ToString();
             clone._boundingBox = null;
             return clone;

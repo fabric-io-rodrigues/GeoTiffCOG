@@ -14,7 +14,7 @@ namespace GeoTiffCOG
         string _tiffPath;
         TraceTiffErrorHandler _traceLogHandler = new TraceTiffErrorHandler();
         Dictionary<int, byte[]> tilesCache;
-        public FileMetadata metadata { get; private set; }
+        public Metadata metadata { get; private set; }
 
         internal Tiff TiffFile
         {
@@ -286,9 +286,10 @@ namespace GeoTiffCOG
 
             return gdal;
         }
-        private FileMetadata ParseMetaData(DEMFileDefinition format)
+
+        private Metadata ParseMetaData(DEMFileDefinition format)
         {
-            FileMetadata _metadata = new FileMetadata(FilePath, format);
+            Metadata _metadata = new Metadata(FilePath, format);
 
             _metadata.Height = TiffFile.GetField(TiffTag.IMAGELENGTH)[0].ToInt();
             _metadata.Width = TiffFile.GetField(TiffTag.IMAGEWIDTH)[0].ToInt();
@@ -347,29 +348,190 @@ namespace GeoTiffCOG
             _metadata.BitsPerSample = TiffFile.GetField(TiffTag.BITSPERSAMPLE)[0].ToInt();
             var sampleFormat = TiffFile.GetField(TiffTag.SAMPLEFORMAT);
             _metadata.SampleFormat = sampleFormat[0].Value.ToString();
-            _metadata.WorldUnits = "meter";
+
+            LoadGEOTiffTags(_metadata);
+
+            return _metadata;
+        }
+
+        private void LoadGEOTiffTags(Metadata _metadata)
+        {
+            //defaults
+            _metadata.Properties.CoordinateSystemId = 4326; // WGS 84
+            _metadata.Properties.ModelType = ModelType.Geographic;
+            _metadata.Properties.RasterType = RasterType.RasterPixelIsArea;
+            _metadata.Properties.AngularUnit = AngularUnits.Degree;
+
+            var geoKeys = TiffFile.GetField((TiffTag)GEOTIFF_TAGS.GEOTIFF_GEOKEYDIRECTORYTAG);
+            if (geoKeys != null)
+            {
+                var geoDoubleParams = TiffFile.GetField((TiffTag)GEOTIFF_TAGS.GEOTIFF_GEODOUBLEPARAMSTAG);
+                double[] doubleParams = null;
+                if (geoDoubleParams != null)
+                {
+                    doubleParams = geoDoubleParams[1].ToDoubleArray();
+                }
+                var geoAsciiParams = TiffFile.GetField((TiffTag)GEOTIFF_TAGS.GEOTIFF_GEOASCIIPARAMSTAG);
+                if (geoAsciiParams != null) _metadata.Properties.GeotiffAsciiParams = geoAsciiParams[1].ToString().Trim('\0');
+
+                // Array of GeoTIFF GeoKeys values
+                var keys = geoKeys[1].ToUShortArray();
+                if (keys.Length > 4)
+                {
+                    // Header={KeyDirectoryVersion, KeyRevision, MinorRevision, NumberOfKeys}
+                    var keyDirectoryVersion = keys[0];
+                    var keyRevision = keys[1];
+                    var minorRevision = keys[2];
+                    var numberOfKeys = keys[3];
+                    for (var keyIndex = 4; keyIndex < keys.Length;)
+                    {
+                        switch (keys[keyIndex])
+                        {
+                            case (ushort)GeoTiffKey.GTModelTypeGeoKey:
+                                {
+                                    _metadata.Properties.ModelType = (ModelType)keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GTRasterTypeGeoKey:
+                                {
+                                    _metadata.Properties.RasterType = (RasterType)keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GTCitationGeoKey:
+                                {
+                                    _metadata.Properties.GTCitationGeo = keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeographicTypeGeoKey:
+                                {
+                                    _metadata.Properties.CoordinateSystemId = keys[keyIndex + 3]; //geographicType
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogCitationGeoKey:
+                                {
+                                    _metadata.Properties.GeogCitation = keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogGeodeticDatumGeoKey:
+                                {
+                                    // 6.3.2.2 Geodetic Datum Codes
+                                    _metadata.Properties.GeodeticDatum = keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogPrimeMeridianGeoKey:
+                                {
+                                    // 6.3.2.4 Prime Meridian Codes
+                                    _metadata.Properties.PrimeMeridian = keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogAngularUnitsGeoKey:
+                                {
+                                    _metadata.Properties.AngularUnit = (AngularUnits)keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogAngularUnitSizeGeoKey:
+                                {
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogEllipsoidGeoKey:
+                                {
+                                    // 6.3.2.3 Ellipsoid Codes
+                                    _metadata.Properties.Ellipsoid = keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogSemiMajorAxisGeoKey:
+                                {
+                                    if (doubleParams != null)
+                                        _metadata.Properties.SemiMajorAxis = doubleParams[keys[keyIndex + 3]];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogSemiMinorAxisGeoKey:
+                                {
+                                    if (doubleParams != null)
+                                        _metadata.Properties.SemiMinorAxis = doubleParams[keys[keyIndex + 3]];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogInvFlatteningGeoKey:
+                                {
+                                    if (doubleParams != null)
+                                        _metadata.Properties.InvFlattening = doubleParams[keys[keyIndex + 3]];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogAzimuthUnitsGeoKey:
+                                {
+                                    _metadata.Properties.AngularUnit = (AngularUnits)keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.GeogPrimeMeridianLongGeoKey:
+                                {
+                                    _metadata.Properties.PrimeMeridianLong = keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.ProjectedCSTypeGeoKey:
+                                {
+                                    _metadata.Properties.CoordinateSystemId = keys[keyIndex + 3]; //projectedCSType
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.PCSCitationGeoKey:
+                                {
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            case (ushort)GeoTiffKey.ProjLinearUnitsGeoKey:
+                                {
+                                    _metadata.Properties.LinearUnit = (LinearUnits)keys[keyIndex + 3];
+                                    keyIndex += 4;
+                                    break;
+                                }
+                            default:
+                                {
+                                    // Just skipping all unprocessed keys
+                                    keyIndex += 4;
+                                    break;
+                                }
+                        }
+                    }
+
+                }
+
+            }
 
             // TIFF Tag GDAL_METADATA 42112
             _metadata.Scale = 1;
-            var tag42112 = TiffFile.GetField((TiffTag)42112);
+            var tag42112 = TiffFile.GetField((TiffTag)GEOTIFF_TAGS.GEOTIFF_GDAL_METADATA);
             if (tag42112 != null && tag42112.Length >= 1)
             {
-                var xml = tag42112[1].ToString().Trim('\0');
-                var gd = ParseXml(xml);
+                _metadata.Properties.GdalMetadata = tag42112[1].ToString().Trim('\0');
+                var gd = ParseXml(_metadata.Properties.GdalMetadata);
                 _metadata.Offset = gd.Offset;
                 _metadata.Scale = gd.Scale;
             }
 
             // TIFF Tag GDAL_NODATA 42113
             _metadata.NoDataValue = "-10000";
-            var tag42113 = TiffFile.GetField((TiffTag)42113);
+            var tag42113 = TiffFile.GetField((TiffTag)GEOTIFF_TAGS.GEOTIFF_GDAL_NODATA);
             if (tag42113 != null && tag42113.Length >= 1)
             {
                 _metadata.NoDataValue = tag42113[1].ToString().Trim('\0');
             }
-
-            return _metadata;
         }
+
         public HeightMap GetHeightMapInBBox(BoundingBox bbox, float noDataValue = 0)
         {
             int yStart = 0;

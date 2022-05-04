@@ -10,7 +10,7 @@ namespace GeoTiffCOG
     public static class Utils
     {
 
-        public static void GetXYFromLatLon(FileMetadata metadata, double latitude, double longitude, out int x, out int y)
+        public static void GetXYFromLatLon(Metadata metadata, double latitude, double longitude, out int x, out int y)
         {
             var bbox = new double[] { metadata.DataStartLon, metadata.DataStartLat, metadata.DataEndLon, metadata.DataEndLat };
             var pixelWidth = metadata.Width;
