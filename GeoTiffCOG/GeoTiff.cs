@@ -221,12 +221,13 @@ namespace GeoTiffCOG
                         break;
                     case RasterSampleFormat.UNSIGNED_INTEGER:
                         if (metadata.BitsPerSample == 32)
-                        {
                             heightValue = BitConverter.ToUInt32(buffer, offset * metadata.BitsPerSample / 8);
-                        }
-                        else
-                        {
+                        else if (metadata.BitsPerSample == 16)
                             heightValue = BitConverter.ToUInt16(buffer, offset * metadata.BitsPerSample / 8);
+                        else if (metadata.BitsPerSample == 8)
+                        {
+                            //UInt8 = byte
+                            heightValue = buffer[offset]; //need revision!!!
                         }
                         heightValue = heightValue * metadata.Scale + metadata.Offset;
                         break;
