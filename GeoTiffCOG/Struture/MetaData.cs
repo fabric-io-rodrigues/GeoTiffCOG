@@ -81,7 +81,8 @@ namespace GeoTiffCOG.Struture
             {
                 if (!_noDataValueSet)
                 {
-                    _noDataValue = float.Parse(NoDataValue);
+                    if (!float.TryParse(NoDataValue, out _noDataValue))
+                        _noDataValue = -1000;
                     _noDataValueSet = true;
                 }
                 return _noDataValue;
