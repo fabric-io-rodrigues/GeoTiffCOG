@@ -10,6 +10,7 @@ namespace GeoTiffCOG.Struture
     {
         XYZ,
         XYZGZIP,
-        GEOTIFF
+        GEOTIFF,
+        GEOTIFFDEFLATE
     }
 }

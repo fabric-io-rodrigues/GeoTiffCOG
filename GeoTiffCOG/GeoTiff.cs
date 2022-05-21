@@ -684,5 +684,16 @@ namespace GeoTiffCOG
             return heightMap;
         }
 
+        public void CropArea(double bottomLeftLat, double bottomLeftLon, double upperRightLat, double upperRightLon, string fileToSave, GeoTiffCOG.Struture.RasterOutputType rasterOutputType)
+        {
+            //box
+            var bboxArea = new BoundingBox(bottomLeftLon, upperRightLon, bottomLeftLat, upperRightLat);
+            //getting data
+            var heightMapArea = GetHeightMapInBBox(bboxArea, metadata.NoDataValueFloat);
+            //making raster
+            MetaDataRaster metaDataRaster = RasterServices.GetMetaDataRaster(heightMapArea.Coordinates);
+            //saving
+            RasterServices.SaveRaster(metaDataRaster, fileToSave, rasterOutputType);
+        }
     }
 }

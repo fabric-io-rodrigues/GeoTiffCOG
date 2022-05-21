@@ -37,7 +37,10 @@ namespace GeoTiffCOG
                     SaveRasterXYZGZip(metaDataRaster, fileOutput);
                     break;
                 case RasterOutputType.GEOTIFF:
-                    SaveRasterGeoTiff(metaDataRaster, fileOutput);
+                    SaveRasterGeoTiff(metaDataRaster, fileOutput, false);
+                    break;
+                case RasterOutputType.GEOTIFFDEFLATE:
+                    SaveRasterGeoTiff(metaDataRaster, fileOutput, true);
                     break;
                 default:
                     break;
@@ -65,7 +68,7 @@ namespace GeoTiffCOG
             }
         }
 
-        private static void SaveRasterGeoTiff(MetaDataRaster metaDataRaster, string fileOutput)
+        private static void SaveRasterGeoTiff(MetaDataRaster metaDataRaster, string fileOutput, bool useCompression)
         {
             if (metaDataRaster.Buffer == null)
                 PopulateRasterBuffer(metaDataRaster);
@@ -86,7 +89,7 @@ namespace GeoTiffCOG
                 output.SetField(TiffTag.RESOLUTIONUNIT, ResUnit.INCH);
                 output.SetField(TiffTag.PLANARCONFIG, PlanarConfig.CONTIG);
                 output.SetField(TiffTag.PHOTOMETRIC, Photometric.MINISBLACK);
-                output.SetField(TiffTag.COMPRESSION, Compression.NONE);
+                output.SetField(TiffTag.COMPRESSION, useCompression ? Compression.DEFLATE : Compression.NONE);
                 output.SetField(TiffTag.FILLORDER, FillOrder.MSB2LSB);
                 output.SetField(TiffTag.SAMPLEFORMAT, SampleFormat.IEEEFP);
 
