@@ -12,7 +12,7 @@ namespace GeoTiffCOG
 
         public static void GetXYFromLatLon(Metadata metadata, double latitude, double longitude, out int x, out int y)
         {
-            var bbox = new double[] { metadata.DataStartLon, metadata.DataStartLat, metadata.DataEndLon, metadata.DataEndLat };
+            var bbox = new double[] { metadata.PhysicalStartLon, metadata.PhysicalStartLat, metadata.PhysicalEndLon, metadata.PhysicalEndLat };
             var pixelWidth = metadata.Width;
             var pixelHeight = metadata.Height;
             var bboxWidth = bbox[2] - bbox[0];
@@ -20,8 +20,8 @@ namespace GeoTiffCOG
 
             var widthPct = (longitude - bbox[0]) / bboxWidth;
             var heightPct = (latitude - bbox[1]) / bboxHeight;
-            x = (int)(Math.Round(pixelWidth * widthPct));
-            y = (int)(Math.Round(pixelHeight * (1 - heightPct)));
+            x = (int)(Math.Truncate(pixelWidth * widthPct));
+            y = (int)(Math.Truncate(pixelHeight * (1 - heightPct)));
         }
 
         public static BoundingBox GetBoundingBox(this IEnumerable<GeoPoint> points)
