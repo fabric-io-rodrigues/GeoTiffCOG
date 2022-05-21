@@ -27,6 +27,14 @@ As an example, url_COG + expected result. This same Tiff is in the Sample direct
 ```
 ![Map of El Salvador - Wind Data 50m](https://raw.githubusercontent.com/fabric-io-rodrigues/GeoTiffCOG/master/SampleData/SLV-Wind50m.png)
 
+## Support crop area function:
+```
+ //Sample:
+ Bottom-Left: 14.004, -89.572
+ Upper-Right: 14.221, -89.227
+```
+![SLV_wind-speed_50m_crop](https://user-images.githubusercontent.com/4131392/169629685-9f4f54de-2fbd-47e2-86ea-de61033f8c01.png)
+
 
 Some project details: I used some best practices from the DEM.Net lib and as a base (used as reference) the BitMiracle/libtiff.net lib.
 
@@ -35,7 +43,7 @@ Feel free to download, modify and suggest changes (such as pull request).
 
 ## License
 
-Copyright © 2021 [Fabricio Rodrigues](https://github.com/fabric-io-rodrigues)
+Copyright © 2022 [Fabricio Rodrigues](https://github.com/fabric-io-rodrigues)
 Released under the MIT license.
 
 ***
